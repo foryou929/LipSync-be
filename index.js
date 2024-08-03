@@ -29,7 +29,7 @@ const router = express.Router();
 const upload = multer({ storage });
 
 router.post(
-    '/process',
+    '/lip-sync',
     upload.fields([
         { name: 'audio', maxCount: 1 },
         { name: 'video', maxCount: 1 },
