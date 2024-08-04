@@ -3,6 +3,7 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const multer = require('multer');
+const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
 
@@ -50,6 +51,37 @@ router.post(
                 console.log(`stdout: ${stdout}`);
                 console.error(`stderr: ${stderr}`);
                 res.json({ message: `Process output: ${stdout}`, url: `${videoFileNameWithoutExt}_${audioFileNameWithoutExt}_LipSync.mp4` });
+            });
+        } catch (err) {
+            console.error(err.message);
+            res.status(500).json({ error: err.message });
+        }
+    }
+)
+
+router.post(
+    '/live-portrait',
+    upload.fields([
+        { name: 'src', maxCount: 1 },
+        { name: 'dst', maxCount: 1 },
+    ]),
+    (req, res) => {
+        try {
+            const srcFilePath = req.files.src[0].path;
+            const dstFilePath = req.files.dst[0].path;
+            const srcFileInfo = path.parse(srcFilePath);
+            const srcFileNameWithoutExt = srcFileInfo.name;
+            const dstFileInfo = path.parse(dstFilePath);
+            const dstFileNameWithoutExt = dstFileInfo.name;
+            exec(`~/LivePortrait/LivePortrait_env/bin/python inference.py -s ~/LipSync-be/${srcFilePath} -d ~/LipSync-be/${dstFilePath}`, { cwd: '../LivePortrait' }, (error, stdout, stderr) => {
+                if (error) {
+                    console.error(`exec error: ${error}`);
+                    return res.status(500).json({ error: 'Error running process' });
+                }
+                console.log(`stdout: ${stdout}`);
+                console.error(`stderr: ${stderr}`);
+                fs.renameSync(`../LivePortrait/animations/${srcFileNameWithoutExt}--${dstFileNameWithoutExt}.mp4`, `uploads/${srcFileNameWithoutExt}_${dstFileNameWithoutExt}_LivePortrait.mp4`);
+                res.json({ message: `Process output: ${stdout}`, url: `${srcFileNameWithoutExt}_${dstFileNameWithoutExt}_LivePortrait.mp4` });
             });
         } catch (err) {
             console.error(err.message);
